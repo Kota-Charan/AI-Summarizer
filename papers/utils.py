@@ -5,14 +5,26 @@ from transformers import AutoTokenizer, pipeline
 
 
 # Load AI model and tokenizer once
-MODEL_NAME = "sshleifer/distilbart-cnn-12-6"
-summarizer = pipeline(
-    "summarization",
-    model=MODEL_NAME
-)
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=True)
-MODEL_TOKEN_LIMIT = tokenizer.model_max_length if tokenizer.model_max_length else 1024
-CHUNK_TOKEN_LIMIT = max(256, MODEL_TOKEN_LIMIT - 100)
+_MODEL_NAME = "sshleifer/distilbart-cnn-12-6"
+# Lazy-loaded model and tokenizer to avoid heavy work at import/startup
+_summarizer = None
+_tokenizer = None
+_MODEL_TOKEN_LIMIT = None
+CHUNK_TOKEN_LIMIT = 1024  # fallback token chunk size until tokenizer is loaded
+
+
+def _ensure_model_loaded():
+    """Load the summarization pipeline and tokenizer on first use."""
+    global _summarizer, _tokenizer, _MODEL_TOKEN_LIMIT, CHUNK_TOKEN_LIMIT
+    if _summarizer is None or _tokenizer is None:
+        try:
+            _summarizer = pipeline("summarization", model=_MODEL_NAME)
+            _tokenizer = AutoTokenizer.from_pretrained(_MODEL_NAME, use_fast=True)
+            _MODEL_TOKEN_LIMIT = _tokenizer.model_max_length if _tokenizer.model_max_length else 1024
+            CHUNK_TOKEN_LIMIT = max(256, _MODEL_TOKEN_LIMIT - 100)
+        except Exception as e:
+            # If model loading fails (e.g., limited memory or network), raise a clear error
+            raise RuntimeError(f"Failed to load summarization model: {e}")
 
 
 def extract_text_from_pdf(pdf_path):
@@ -31,13 +43,18 @@ def extract_text_from_pdf(pdf_path):
         return f"PDF Error: {str(e)}"
 
 
-def _split_text_into_chunks(text, max_tokens=CHUNK_TOKEN_LIMIT):
+def _split_text_into_chunks(text, max_tokens=None):
     sentences = re.split(r'(?<=[.!?])\s+', text)
     chunks = []
     current_chunk = ""
 
+    # ensure model/tokenizer available and determine token limit
+    _ensure_model_loaded()
+    if max_tokens is None:
+        max_tokens = CHUNK_TOKEN_LIMIT
+
     def token_count(value):
-        return len(tokenizer(value, return_tensors='pt', truncation=False)['input_ids'][0])
+        return len(_tokenizer(value, return_tensors='pt', truncation=False)['input_ids'][0])
 
     for sentence in sentences:
         sentence = sentence.strip()
@@ -87,8 +104,9 @@ def _split_text_into_chunks(text, max_tokens=CHUNK_TOKEN_LIMIT):
 
 def _summarize_chunks(chunks, max_len, min_len):
     partial_summaries = []
+    _ensure_model_loaded()
     for chunk in chunks:
-        result = summarizer(
+        result = _summarizer(
             chunk,
             max_length=max_len,
             min_length=min_len,
@@ -100,8 +118,8 @@ def _summarize_chunks(chunks, max_len, min_len):
     if len(partial_summaries) == 1:
         return combined_summary
 
-    if len(tokenizer(combined_summary, return_tensors='pt', truncation=False)['input_ids'][0]) <= CHUNK_TOKEN_LIMIT:
-        result = summarizer(
+    if len(_tokenizer(combined_summary, return_tensors='pt', truncation=False)['input_ids'][0]) <= CHUNK_TOKEN_LIMIT:
+        result = _summarizer(
             combined_summary,
             max_length=max_len,
             min_length=min_len,
