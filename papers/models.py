@@ -5,6 +5,8 @@ class ResearchPaper(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     pdf_file = models.FileField(upload_to='papers/')
+    summary_size = models.CharField(max_length=50, default='medium')
+    output_language = models.CharField(max_length=50, default='English (US)')
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

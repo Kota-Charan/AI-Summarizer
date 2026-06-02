@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+
+    <div class="col-md-5">
+
+        <div class="main-card">
+
+            <h2 class="text-center mb-4">
+                Create Account
+            </h2>
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+                <!-- SHOW ERRORS -->
+
+                {% if form.errors %}
+
+                    <div class="alert alert-danger">
+
+                        {% for field in form %}
+
+                            {% for error in field.errors %}
+
+                                <p>{{ error }}</p>
+
+                            {% endfor %}
+
+                        {% endfor %}
+
+                        {% for error in form.non_field_errors %}
+
+                            <p>{{ error }}</p>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+                <!-- USERNAME -->
+
+                <div class="mb-3">
+
+                    <label>Username</label>
+
+                    {{ form.username }}
+
+                </div>
+
+                <!-- EMAIL -->
+
+                <div class="mb-3">
+
+                    <label>Email</label>
+
+                    {{ form.email }}
+
+                </div>
+
+                <!-- PASSWORD -->
+
+                <div class="mb-3">
+
+                    <label>Password</label>
+
+                    {{ form.password1 }}
+
+                </div>
+
+                <!-- CONFIRM PASSWORD -->
+
+                <div class="mb-3">
+
+                    <label>Confirm Password</label>
+
+                    {{ form.password2 }}
+
+                </div>
+
+                <button type="submit" class="btn btn-success btn-custom">
+                    Register
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}
