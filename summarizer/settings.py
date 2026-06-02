@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,13 +21,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-j(l(3vccxwyc2x67+63-u5-8kuud3*y*k0y7u11^6=68cn+q^7'
+# Read from env in production; fallback to the dev key for local runs.
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-j(l(3vccxwyc2x67+63-u5-8kuud3*y*k0y7u11^6=68cn+q^7'
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Allow enabling/disabling via env var `DJANGO_DEBUG` (set to 'False' in prod).
+DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ["*"]
-
+ALLOWED_HOSTS = [
+    "ai-summarizer-ihl9.onrender.com"
+]
 
 # Application definition
 
